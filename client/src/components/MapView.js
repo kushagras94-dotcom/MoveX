@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+//import React, { useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 
@@ -70,7 +70,7 @@ function MapView({ pickup, destination, driverLocation, onMapClick }) {
 
       {driverLocation && (
         <Marker position={[driverLocation.lat, driverLocation.lng]} icon={driverIcon}>
-          <Popup>🚗 Driver is here</Popup>
+          <Popup> Driver is here</Popup>
         </Marker>
       )}
     </MapContainer>

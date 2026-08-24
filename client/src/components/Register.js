@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate, Link } from 'react-router-dom';
+import {  Link } from 'react-router-dom';
 
 const API = 'https://uber-ride-booking-backend.onrender.com/api';
 
@@ -8,7 +8,7 @@ function Register() {
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'rider' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  //const navigate = useNavigate();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -36,7 +36,7 @@ function Register() {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        <h1 style={styles.title}>🚗 UberClone</h1>
+        <h1 style={styles.title}> MoveX</h1>
         <h2 style={styles.subtitle}>Create Account</h2>
         {error && <p style={styles.error}>{error}</p>}
         <form onSubmit={handleRegister}>

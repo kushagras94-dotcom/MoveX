@@ -33,7 +33,8 @@ function DriverDashboard() {
         navigator.geolocation.clearWatch(watchId);
       }
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, navigate]);
 
   const setupDriver = async () => {
     try {
@@ -109,6 +110,24 @@ function DriverDashboard() {
     setResponding(false);
   };
 
+  const completeRide = async () => {
+    setResponding(true);
+    try {
+      await axios.put(`${API}/rides/status/${currentRide}`, 
+        { status: 'completed' }, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      navigator.geolocation.clearWatch(watchId);
+      setWatchId(null);
+      setDriverLocation(null);
+      setCurrentRide(null);
+      setAvailable(true);
+    } catch (err) {
+      alert('Could not complete ride: ' + (err.response?.data?.message || 'unknown error'));
+    }
+    setResponding(false);
+  };
+
   const rejectRide = async () => {
     setResponding(true);
     try {
@@ -146,7 +165,7 @@ function DriverDashboard() {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <h2>Driver: {name} 🚗</h2>
+        <h2>Driver: {name} </h2>
         <button onClick={logout} style={styles.logoutBtn}>Logout</button>
       </div>
 
@@ -161,7 +180,7 @@ function DriverDashboard() {
       </div>
       {incomingRequest && (
         <div style={{ ...styles.card, backgroundColor: '#fff8e1', border: '2px solid #ffa000' }}>
-          <h3>🚗 New Ride Request!</h3>
+          <h3> New Ride Request!</h3>
           <p>Fare: ₹{incomingRequest.fare}</p>
           <p>Distance: {incomingRequest.roadDistance || 'Calculating...'}</p>
           <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
@@ -215,6 +234,13 @@ function DriverDashboard() {
               </MapContainer>
             </div>
           )}
+          <button
+            style={{ ...styles.button, backgroundColor: '#2e7d32' }}
+            onClick={completeRide}
+            disabled={responding}
+          >
+            ✅ Complete Ride
+          </button>
           <button
             style={{ ...styles.button, backgroundColor: '#c62828' }}
             onClick={() => {

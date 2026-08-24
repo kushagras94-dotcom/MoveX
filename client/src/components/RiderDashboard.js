@@ -22,7 +22,8 @@ function RiderDashboard() {
 
   useEffect(() => {
     if (!token) navigate('/');
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, navigate]);
 
   const handleMapClick = (latlng) => {
     if (clickMode === 'pickup') {
@@ -75,7 +76,7 @@ function RiderDashboard() {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <h2 style={styles.headerText}>🚗 UberClone</h2>
+        <h2 style={styles.headerText}> MoveX</h2>
         <div>
           <span style={styles.welcomeText}>Hi, {name}</span>
           <button onClick={logout} style={styles.logoutBtn}>Logout</button>
@@ -119,7 +120,7 @@ function RiderDashboard() {
                 onClick={requestRide}
                 disabled={loading || !pickup || !destination}
               >
-                {loading ? '🔍 Finding driver...' : '🚗 Request Ride'}
+                {loading ? '🔍 Finding driver...' : ' Request Ride'}
               </button>
 
               {pickup && destination && (
@@ -148,7 +149,7 @@ function RiderDashboard() {
               </div>
               {driverLocation && (
                 <div style={styles.driverBox}>
-                  <p>🚗 Driver is moving towards you!</p>
+                  <p> Driver is moving towards you!</p>
                   <p style={styles.coords}>
                     {driverLocation.lat.toFixed(4)}, {driverLocation.lng.toFixed(4)}
                   </p>
