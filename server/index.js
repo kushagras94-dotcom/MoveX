@@ -8,9 +8,18 @@ const connectDB = require('./config/db');
 const authRoutes = require('./routes/auth');
 const rideRoutes = require('./routes/ride');
 const driverRoutes = require('./routes/driver');
+const { createAdapter } = require('@socket.io/redis-adapter');
+const Redis = require('ioredis');
 
 dotenv.config();
 connectDB();
+
+// Redis clients for Socket.io adapter (pub/sub across server instances)
+const pubClient = new Redis(process.env.REDIS_URL, { tls: process.env.REDIS_URL.startsWith('rediss://') ? {} : undefined }); 
+const subClient = pubClient.duplicate();
+
+pubClient.on('error', (err) => console.error('Redis Pub Client Error:', err));
+subClient.on('error', (err) => console.error('Redis Sub Client Error:', err));
 
 const app = express();
 const server = http.createServer(app);
@@ -20,6 +29,9 @@ const io = new Server(server, {
     methods: ['GET', 'POST']
   }
 });
+
+io.adapter(createAdapter(pubClient, subClient));
+console.log('Socket.io Redis adapter connected');
 
 app.use(cors({
   origin: '*',

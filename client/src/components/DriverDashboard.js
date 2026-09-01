@@ -6,8 +6,8 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-const API = 'https://uber-ride-booking-backend.onrender.com/api';
-const SOCKET_URL = 'https://uber-ride-booking-backend.onrender.com';
+ const API = process.env.REACT_APP_API_URL || 'https://uber-ride-booking-backend.onrender.com/api'; 
+ const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'https://uber-ride-booking-backend.onrender.com';
 
 function DriverDashboard() {
   const [available, setAvailable] = useState(true);

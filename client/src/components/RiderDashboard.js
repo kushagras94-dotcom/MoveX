@@ -4,8 +4,8 @@ import { io } from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
 import MapView from './MapView';
 
-const API = 'https://uber-ride-booking-backend.onrender.com/api';
-const SOCKET_URL = 'https://uber-ride-booking-backend.onrender.com';
+const API = process.env.REACT_APP_API_URL ||'https://uber-ride-booking-backend.onrender.com/api';
+const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'https://uber-ride-booking-backend.onrender.com';
 
 function RiderDashboard() {
   const [pickup, setPickup] = useState(null);
