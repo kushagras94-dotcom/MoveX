@@ -1,6 +1,9 @@
-const express = require('express');
-const cors = require('cors');
 const dotenv = require('dotenv');
+dotenv.config();
+const express = require('express');
+
+const cors = require('cors');
+
 const http = require('http');
 const { Server } = require('socket.io');
 const connectDB = require('./config/db');
@@ -11,7 +14,7 @@ const driverRoutes = require('./routes/driver');
 const { createAdapter } = require('@socket.io/redis-adapter');
 const Redis = require('ioredis');
 
-dotenv.config();
+
 connectDB();
 
 // Redis clients for Socket.io adapter (pub/sub across server instances)

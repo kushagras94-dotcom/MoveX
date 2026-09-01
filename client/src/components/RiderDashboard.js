@@ -68,7 +68,14 @@ function RiderDashboard() {
     setLoading(false);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await axios.post(`${API}/auth/logout`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error('Logout API call failed:', err);
+    }
     localStorage.clear();
     navigate('/');
   };

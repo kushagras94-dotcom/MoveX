@@ -2,6 +2,11 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+const Redis = require('ioredis');
+const redisClient = new Redis(process.env.REDIS_URL, {
+  tls: process.env.REDIS_URL.startsWith('rediss://') ? {} : undefined
+});
+
 // REGISTER
 exports.register = async (req, res) => {
   try {
@@ -91,6 +96,31 @@ exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
     res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+exports.logout = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(400).json({ message: 'No token provided' });
+    }
+
+    const decoded = jwt.decode(token);
+    if (!decoded || !decoded.exp) {
+      return res.status(400).json({ message: 'Invalid token' });
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const remainingSeconds = decoded.exp - now;
+
+    if (remainingSeconds > 0) {
+      await redisClient.set(`blacklist:${token}`, '1', 'EX', remainingSeconds);
+    }
+
+    res.status(200).json({ message: 'Logged out successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }

@@ -1,12 +1,20 @@
 const jwt = require('jsonwebtoken');
 
-module.exports = async (req, res, next) => {
-  try {
-    // Get token from header
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+const Redis = require('ioredis');
+const redisClient = new Redis(process.env.REDIS_URL, {
+  tls: process.env.REDIS_URL.startsWith('rediss://') ? {} : undefined
+});
 
-    if (!token) {
-      return res.status(401).json({ message: 'No token, access denied' });
+
+module.exports = async (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ message: 'No token provided' });
+
+  try {
+    
+    const isBlacklisted = await redisClient.get(`blacklist:${token}`);
+    if(isBlacklisted){
+      return res.status(401).json({ message: 'Token has been logged out' });
     }
 
     // Verify token
