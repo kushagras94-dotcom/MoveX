@@ -9,11 +9,15 @@ const {
   getMyRides,
   getRide
 } = require('../controllers/rideController');
-router.post('/request', authMiddleware, requestRide);
+const { rideRequestLimiter } = require('../config/rateLimiter');
+
+
+//router.post('/request', authMiddleware, requestRide);
 router.put('/accept/:id', authMiddleware, acceptRide);
 router.put('/reject/:id', authMiddleware, rejectRide);
 router.put('/status/:id', authMiddleware, updateRideStatus);
 router.get('/my-rides', authMiddleware, getMyRides);
 router.get('/:id', authMiddleware, getRide);
+router.post('/request', authMiddleware, rideRequestLimiter, requestRide);
 
 module.exports = router;
