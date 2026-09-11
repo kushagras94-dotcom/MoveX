@@ -1,9 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-const Redis = require('ioredis');
-const redisClient = new Redis(process.env.REDIS_URL, {
-  tls: process.env.REDIS_URL.startsWith('rediss://') ? {} : undefined
-});
+const redisClient = require('../config/redisClient');
 
 
 module.exports = async (req, res, next) => {

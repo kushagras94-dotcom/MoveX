@@ -14,6 +14,7 @@ const driverRoutes = require('./routes/driver');
 const { createAdapter } = require('@socket.io/redis-adapter');
 const Redis = require('ioredis');
 
+const startRideMatchWorker = require('./workers/rideMatchWorker');
 
 connectDB();
 
@@ -35,6 +36,10 @@ const io = new Server(server, {
 
 io.adapter(createAdapter(pubClient, subClient));
 console.log('Socket.io Redis adapter connected');
+
+startRideMatchWorker(io);
+console.log('Ride match worker started');
+
 
 app.use(cors({
   origin: '*',

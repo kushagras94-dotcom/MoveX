@@ -2,10 +2,7 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const Redis = require('ioredis');
-const redisClient = new Redis(process.env.REDIS_URL, {
-  tls: process.env.REDIS_URL.startsWith('rediss://') ? {} : undefined
-});
+const redisClient = require('../config/redisClient');
 
 // REGISTER
 exports.register = async (req, res) => {

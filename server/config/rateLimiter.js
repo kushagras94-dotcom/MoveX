@@ -1,10 +1,8 @@
 const { rateLimit } = require('express-rate-limit');
 const { RedisStore } = require('rate-limit-redis');
-const Redis = require('ioredis');
+const { ipKeyGenerator } = require('express-rate-limit');
 
-const redisClient = new Redis(process.env.REDIS_URL, {
-  tls: process.env.REDIS_URL.startsWith('rediss://') ? {} : undefined
-});
+const redisClient = require('./redisClient');
 
 // Login: max 5 attempts per 15 minutes per IP
 const loginLimiter = rateLimit({
@@ -13,6 +11,7 @@ const loginLimiter = rateLimit({
   message: { message: 'Too many login attempts. Please try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: ipKeyGenerator,
   store: new RedisStore({
     sendCommand: (...args) => redisClient.call(...args),
     prefix: 'rl:login:'
@@ -26,6 +25,7 @@ const registerLimiter = rateLimit({
   message: { message: 'Too many registration attempts. Please try again in an hour.' },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: ipKeyGenerator,
   store: new RedisStore({
     sendCommand: (...args) => redisClient.call(...args),
     prefix: 'rl:register:'
@@ -39,7 +39,7 @@ const rideRequestLimiter = rateLimit({
   message: { message: 'Too many ride requests. Please slow down.' },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.user?.id || req.ip,
+  keyGenerator: (req) => req.user?.id || ipKeyGenerator(req.ip),
   store: new RedisStore({
     sendCommand: (...args) => redisClient.call(...args),
     prefix: 'rl:ride:'

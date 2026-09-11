@@ -2,6 +2,8 @@ const Ride = require('../models/Ride');
 const Driver = require('../models/Driver');
 const axios = require('axios');
 
+const { rideMatchQueue } = require('../config/queue');
+
 // Get real road distance and duration using OpenRouteService
 const getRoadDistance = async (fromLng, fromLat, toLng, toLat) => {
   try {
@@ -46,89 +48,30 @@ const calculateFare = (distanceKm) => {
 };
 
 // REQUEST A RIDE
+
 exports.requestRide = async (req, res) => {
   try {
     const { pickup, destination } = req.body;
 
-    const availableDrivers = await Driver.find({ isAvailable: true });
-
-    if (availableDrivers.length === 0) {
-      return res.status(404).json({ message: 'No drivers available' });
-    }
-
-    // Find nearest driver using real road distance
-    let nearestDriver = null;
-    let shortestDuration = Infinity;
-    let nearestDriverInfo = null;
-
-    for (const driver of availableDrivers) {
-      const roadData = await getRoadDistance(
-        pickup.lng, pickup.lat,
-        driver.location.lng, driver.location.lat
-      );
-
-      if (roadData) {
-        if (roadData.durationMins < shortestDuration) {
-          shortestDuration = roadData.durationMins;
-          nearestDriver = driver;
-          nearestDriverInfo = roadData;
-        }
-      } else {
-        // Fallback to Haversine
-        const dist = haversineDistance(
-          pickup.lat, pickup.lng,
-          driver.location.lat, driver.location.lng
-        );
-        if (dist < shortestDuration) {
-          shortestDuration = dist;
-          nearestDriver = driver;
-        }
-      }
-    }
-
-    // Get road distance between pickup and destination for fare
-    const rideRoadData = await getRoadDistance(
-      pickup.lng, pickup.lat,
-      destination.lng, destination.lat
-    );
-
-    const rideDistanceKm = rideRoadData
-      ? rideRoadData.distanceKm
-      : haversineDistance(pickup.lat, pickup.lng, destination.lat, destination.lng);
-
-    const fare = calculateFare(rideDistanceKm);
-
+    // Create the ride immediately in a 'finding_driver' state
     const ride = await Ride.create({
       riderId: req.user.id,
-      driverId: nearestDriver._id,
       pickup,
       destination,
-      fare,
-      status: 'requested'
+      status: 'finding_driver'
     });
-    // Notify the matched driver instantly via Socket.io
-    const io = req.app.get('io');
-    console.log('Attempting to notify driver room:', `driver:${nearestDriver.userId}`);
-    if (io) {
-      io.to(`driver:${nearestDriver.userId}`).emit('ride:newRequest', {
-        rideId: ride._id,
-        pickup,
-        destination,
-        fare,
-        roadDistance: rideRoadData ? `${rideRoadData.distanceKm} km` : null
-      });
-    }
 
-    res.status(201).json({
-      message: 'Ride requested successfully',
-      ride,
-      estimatedDriverArrival: nearestDriverInfo
-        ? `${nearestDriverInfo.durationMins} mins`
-        : 'Calculating...',
-      roadDistance: rideRoadData
-        ? `${rideRoadData.distanceKm} km`
-        : 'Calculating...',
-      estimatedFare: '₹' + fare
+    // Push the actual matching work to the background queue
+    await rideMatchQueue.add('matchDriver', {
+      rideId: ride._id.toString(),
+      pickup,
+      destination,
+      riderId: req.user.id
+    });
+
+    res.status(202).json({
+      message: 'Finding driver...',
+      rideId: ride._id
     });
 
   } catch (error) {

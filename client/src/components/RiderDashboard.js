@@ -50,11 +50,23 @@ function RiderDashboard() {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      setRide(res.data);
-      setStatus('requested');
+      setRide({ rideId: res.data.rideId });
+      setStatus('finding_driver');
 
       const socket = io(SOCKET_URL);
-      socket.emit('ride:join', res.data.ride._id);
+      socket.emit('ride:join', res.data.rideId);
+
+      socket.on('ride:matched', (data) => {
+        setRide((prev) => ({ ...prev, ...data }));
+        setStatus('requested');
+      });
+
+      socket.on('ride:matchFailed', (data) => {
+        setError(data.message);
+        setRide(null);
+        setStatus('');
+      });
+
       socket.on('driver:locationUpdate', (data) => {
         setDriverLocation(data);
       });

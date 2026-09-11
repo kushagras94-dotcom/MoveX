@@ -7,8 +7,8 @@ const rideSchema = new mongoose.Schema({
   destination: { lat: Number, lng: Number, address: String },
   status: { 
     type: String, 
-    enum: ['requested', 'accepted', 'ongoing', 'completed', 'cancelled'],
-    default: 'requested'
+    enum: ['finding_driver','requested', 'accepted', 'ongoing', 'completed', 'cancelled'],
+    default: 'finding_driver'
   },
   fare: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now }
