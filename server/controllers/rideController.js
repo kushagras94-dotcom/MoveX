@@ -89,7 +89,22 @@ exports.acceptRide = async (req, res) => {
     }
     ride.status = 'accepted';
     await ride.save();
-    await Driver.findByIdAndUpdate(ride.driverId, { isAvailable: false });
+
+    const driver = await Driver.findByIdAndUpdate(
+      ride.driverId,
+      { isAvailable: false },
+      { new: true }
+    ).populate('userId', 'name');
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`ride:${ride._id}`).emit('ride:statusChanged', {
+        rideId: ride._id,
+        status: 'accepted',
+        driverName: driver?.userId?.name || 'Your driver'
+      });
+    }
+
     res.status(200).json({ message: 'Ride accepted', ride });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -105,6 +120,15 @@ exports.rejectRide = async (req, res) => {
     }
     ride.status = 'cancelled';
     await ride.save();
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`ride:${ride._id}`).emit('ride:statusChanged', {
+        rideId: ride._id,
+        status: 'cancelled'
+      });
+    }
+
     res.status(200).json({ message: 'Ride rejected', ride });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -121,6 +145,15 @@ exports.updateRideStatus = async (req, res) => {
     if (status === 'completed' || status === 'cancelled') {
       await Driver.findByIdAndUpdate(ride.driverId, { isAvailable: true });
     }
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`ride:${ride._id}`).emit('ride:statusChanged', {
+        rideId: ride._id,
+        status
+      });
+    }
+
     res.status(200).json({ message: 'Ride status updated', ride });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });

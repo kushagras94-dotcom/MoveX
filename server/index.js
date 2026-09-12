@@ -19,7 +19,10 @@ const startRideMatchWorker = require('./workers/rideMatchWorker');
 connectDB();
 
 // Redis clients for Socket.io adapter (pub/sub across server instances)
-const pubClient = new Redis(process.env.REDIS_URL, { tls: process.env.REDIS_URL.startsWith('rediss://') ? {} : undefined }); 
+const pubClient = new Redis(process.env.REDIS_URL, {
+  tls: process.env.REDIS_URL.startsWith('rediss://') ? {} : undefined,
+  maxRetriesPerRequest: null
+});
 const subClient = pubClient.duplicate();
 
 pubClient.on('error', (err) => console.error('Redis Pub Client Error:', err));

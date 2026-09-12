@@ -19,11 +19,19 @@ function RiderDashboard() {
   const navigate = useNavigate();
   const name = localStorage.getItem('name');
   const token = localStorage.getItem('token');
+  const [driverName, setDriverName] = useState('');
 
   useEffect(() => {
     if (!token) navigate('/');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, navigate]);
+
+  useEffect(() => {
+    if (status === 'completed') {
+      setDriverLocation(null);
+    }
+  }, [status]);
+
 
   const handleMapClick = (latlng) => {
     if (clickMode === 'pickup') {
@@ -71,7 +79,17 @@ function RiderDashboard() {
         setDriverLocation(data);
       });
       socket.on('ride:statusChanged', (data) => {
+        if (data.status === 'cancelled') {
+          setError('No driver accepted your ride. Try again.');
+          setRide(null);
+          setStatus('');
+          setDriverLocation(null);
+          return;
+        }
         setStatus(data.status);
+        if (data.driverName) {
+          setDriverName(data.driverName);
+        }
       });
 
     } catch (err) {
@@ -166,6 +184,11 @@ function RiderDashboard() {
                 <p>📏 Distance: <strong>{ride.roadDistance}</strong></p>
                 <p>⏱ Driver arrives: <strong>{ride.estimatedDriverArrival}</strong></p>
               </div>
+              {status === 'accepted' && driverName && (
+                <div style={styles.driverBox}>
+                  <p>🚗 <strong>{driverName}</strong> is on the way!</p>
+                </div>
+              )}
               {driverLocation && (
                 <div style={styles.driverBox}>
                   <p> Driver is moving towards you!</p>
