@@ -183,3 +183,29 @@ exports.getRide = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+
+exports.getRoute = async (req, res) => {
+  try {
+    const { fromLat, fromLng, toLat, toLng } = req.query;
+
+    const response = await axios.get(
+      `https://api.openrouteservice.org/v2/directions/driving-car`,
+      {
+        params: {
+          api_key: process.env.ORS_API_KEY,
+          start: `${fromLng},${fromLat}`,
+          end: `${toLng},${toLat}`
+        }
+      }
+    );
+
+    const coordinates = response.data.features[0].geometry.coordinates;
+    // ORS returns [lng, lat] pairs, Leaflet wants [lat, lng] — flip them
+    const routeCoords = coordinates.map(([lng, lat]) => [lat, lng]);
+
+    res.status(200).json({ route: routeCoords });
+  } catch (error) {
+    res.status(500).json({ message: 'Could not fetch route', error: error.message });
+  }
+};

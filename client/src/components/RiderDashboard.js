@@ -4,6 +4,7 @@ import { io } from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
 import MapView from './MapView';
 
+
 const API = process.env.REACT_APP_API_URL ||'https://uber-ride-booking-backend.onrender.com/api';
 const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'https://uber-ride-booking-backend.onrender.com';
 
@@ -20,6 +21,9 @@ function RiderDashboard() {
   const name = localStorage.getItem('name');
   const token = localStorage.getItem('token');
   const [driverName, setDriverName] = useState('');
+  const [etaSeconds, setEtaSeconds] = useState(null);
+  const [route, setRoute] = useState(null);
+
 
   useEffect(() => {
     if (!token) navigate('/');
@@ -29,8 +33,17 @@ function RiderDashboard() {
   useEffect(() => {
     if (status === 'completed') {
       setDriverLocation(null);
+      setEtaSeconds(null);
     }
   }, [status]);
+
+  useEffect(() => {
+    if (etaSeconds === null || etaSeconds <= 0) return;
+    const timer = setInterval(() => {
+      setEtaSeconds((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [etaSeconds]);
 
 
   const handleMapClick = (latlng) => {
@@ -67,6 +80,25 @@ function RiderDashboard() {
       socket.on('ride:matched', (data) => {
         setRide((prev) => ({ ...prev, ...data }));
         setStatus('requested');
+        const minutesMatch = data.estimatedDriverArrival?.match(/\d+/);
+        if (minutesMatch) {
+          setEtaSeconds(parseInt(minutesMatch[0]) * 60);
+        }
+
+        // Fetch the actual road route to draw on the map
+        axios.get(`${API}/rides/route`, {
+          params: {
+            fromLat: pickup.lat,
+            fromLng: pickup.lng,
+            toLat: destination.lat,
+            toLng: destination.lng
+          },
+          headers: { Authorization: `Bearer ${token}` }
+        }).then((res) => {
+          setRoute(res.data.route);
+        }).catch((err) => {
+          console.error('Could not fetch route:', err.message);
+        });
       });
 
       socket.on('ride:matchFailed', (data) => {
@@ -84,6 +116,7 @@ function RiderDashboard() {
           setRide(null);
           setStatus('');
           setDriverLocation(null);
+          setRoute(null);
           return;
         }
         setStatus(data.status);
@@ -182,7 +215,7 @@ function RiderDashboard() {
               <div style={styles.infoBox}>
                 <p>💰 Fare: <strong>{ride.estimatedFare}</strong></p>
                 <p>📏 Distance: <strong>{ride.roadDistance}</strong></p>
-                <p>⏱ Driver arrives: <strong>{ride.estimatedDriverArrival}</strong></p>
+                <p>⏱ Driver arrives: <strong>{etaSeconds !== null && etaSeconds > 0 ? `${Math.floor(etaSeconds / 60)}m ${etaSeconds % 60}s` : ride.estimatedDriverArrival}</strong></p>
               </div>
               {status === 'accepted' && driverName && (
                 <div style={styles.driverBox}>
@@ -203,6 +236,7 @@ function RiderDashboard() {
                 setDestination(null);
                 setStatus('');
                 setDriverLocation(null);
+                setRoute(null);
               }}>
                 Book Another Ride
               </button>
@@ -217,6 +251,7 @@ function RiderDashboard() {
             destination={destination}
             driverLocation={driverLocation}
             onMapClick={handleMapClick}
+            route={route}
           />
         </div>
       </div>

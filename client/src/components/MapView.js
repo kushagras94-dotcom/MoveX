@@ -1,5 +1,5 @@
 //import React, { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 
 // Fix default marker icons
@@ -42,7 +42,7 @@ function ClickHandler({ onMapClick }) {
   return null;
 }
 
-function MapView({ pickup, destination, driverLocation, onMapClick }) {
+function MapView({ pickup, destination, driverLocation, onMapClick, route }) {
   return (
     <MapContainer
       center={[26.9124, 75.7873]}
@@ -72,6 +72,10 @@ function MapView({ pickup, destination, driverLocation, onMapClick }) {
         <Marker position={[driverLocation.lat, driverLocation.lng]} icon={driverIcon}>
           <Popup> Driver is here</Popup>
         </Marker>
+      )}
+
+      {route && route.length > 0 && (
+        <Polyline positions={route} color="#2563eb" weight={4} opacity={0.7} />
       )}
     </MapContainer>
   );

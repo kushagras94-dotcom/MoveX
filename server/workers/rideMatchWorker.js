@@ -103,6 +103,9 @@ function startRideMatchWorker(io) {
       fare,
       status: 'requested'
     });
+    
+
+    console.log('Notifying driver:', nearestDriver.userId, 'driver record _id:', nearestDriver._id);
 
     // Notify the matched driver
     io.to(`driver:${nearestDriver.userId}`).emit('ride:newRequest', {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -22,10 +22,21 @@ function DriverDashboard() {
   const name = localStorage.getItem('name');
   const token = localStorage.getItem('token');
   const userId = localStorage.getItem('userId');
+  const [routeToPickup, setRouteToPickup] = useState(null);
+  const [activeRide, setActiveRide] = useState(null);
 
   useEffect(() => {
     if (!token) navigate('/');
     setupDriver();
+
+    // Sync the actual availability status from the database, don't assume true
+    axios.get(`${API}/driver/status`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).then((res) => {
+      setAvailable(res.data.isAvailable);
+    }).catch((err) => {
+      console.error('Could not fetch driver status:', err.message);
+    });
 
     // Cleanup: stop GPS tracking if the driver leaves this page
     return () => {
@@ -96,12 +107,35 @@ function DriverDashboard() {
     );
     setWatchId(id);
   };
+  
   const acceptRide = async () => {
     setResponding(true);
     try {
       await axios.put(`${API}/rides/accept/${incomingRequest.rideId}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
+
+      setActiveRide({
+        pickup: incomingRequest.pickup,
+        destination: incomingRequest.destination
+      });
+      // Fetch the route for display on the driver's map too
+      if (incomingRequest.pickup && incomingRequest.destination) {
+        axios.get(`${API}/rides/route`, {
+          params: {
+            fromLat: incomingRequest.pickup.lat,
+            fromLng: incomingRequest.pickup.lng,
+            toLat: incomingRequest.destination.lat,
+            toLng: incomingRequest.destination.lng
+          },
+          headers: { Authorization: `Bearer ${token}` }
+        }).then((res) => {
+          setRouteToPickup(res.data.route);
+        }).catch((err) => {
+          console.error('Could not fetch route:', err.message);
+        });
+      }
+
       setIncomingRequest(null);
       startLiveTracking(incomingRequest.rideId);
     } catch (err) {
@@ -122,6 +156,8 @@ function DriverDashboard() {
       setDriverLocation(null);
       setCurrentRide(null);
       setAvailable(true);
+      setActiveRide(null);
+      setRouteToPickup(null)
     } catch (err) {
       alert('Could not complete ride: ' + (err.response?.data?.message || 'unknown error'));
     }
@@ -213,7 +249,7 @@ function DriverDashboard() {
           <h3>📍 Live tracking active</h3>
           {driverLocation && currentRide && (
             <div style={{ height: '300px', borderRadius: '8px', overflow: 'hidden', marginBottom: '1rem' }}>
-              <MapContainer
+                            <MapContainer
                 center={[driverLocation.lat, driverLocation.lng]}
                 zoom={14}
                 style={{ height: '100%', width: '100%' }}
@@ -225,9 +261,9 @@ function DriverDashboard() {
                 <Marker position={[driverLocation.lat, driverLocation.lng]}>
                   <Popup>You are here</Popup>
                 </Marker>
-                {incomingRequest?.pickup && (
+                {activeRide?.pickup && (
                   <Marker
-                    position={[incomingRequest.pickup.lat, incomingRequest.pickup.lng]}
+                    position={[activeRide.pickup.lat, activeRide.pickup.lng]}
                     icon={L.icon({
                       iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
                       shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
@@ -237,6 +273,22 @@ function DriverDashboard() {
                   >
                     <Popup>Pickup point</Popup>
                   </Marker>
+                )}
+                {activeRide?.destination && (
+                  <Marker
+                    position={[activeRide.destination.lat, activeRide.destination.lng]}
+                    icon={L.icon({
+                      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+                      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+                      iconSize: [25, 41],
+                      iconAnchor: [12, 41]
+                    })}
+                  >
+                    <Popup>Destination</Popup>
+                  </Marker>
+                )}
+                {routeToPickup && routeToPickup.length > 0 && (
+                  <Polyline positions={routeToPickup} color="#2563eb" weight={4} opacity={0.7} />
                 )}
               </MapContainer>
             </div>
@@ -254,6 +306,8 @@ function DriverDashboard() {
               navigator.geolocation.clearWatch(watchId);
               setWatchId(null);
               setDriverLocation(null);
+              setActiveRide(null);
+              setRouteToPickup(null);
             }}
           >
             Stop Tracking

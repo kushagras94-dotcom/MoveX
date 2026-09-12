@@ -25,8 +25,12 @@ function Login() {
       else window.location.href = '/driver';
 
     } catch (err) {
-      setError('Invalid email or password');
+    if (err.response) {
+      setError(err.response.data?.message || 'Invalid email or password');
+    } else {
+      setError('Cannot reach server. Please check your connection and try again.');
     }
+  }
     setLoading(false);
   };
 

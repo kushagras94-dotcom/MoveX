@@ -84,3 +84,15 @@ exports.getDriverProfile = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+exports.getDriverStatus = async (req, res) => {
+  try {
+    const driver = await Driver.findOne({ userId: req.user.id });
+    if (!driver) {
+      return res.status(404).json({ message: 'Driver profile not found' });
+    }
+    res.status(200).json({ isAvailable: driver.isAvailable });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};

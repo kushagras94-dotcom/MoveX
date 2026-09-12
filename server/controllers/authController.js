@@ -122,3 +122,11 @@ exports.logout = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+exports.debugCheckPassword = async (req, res) => {
+  const { email, password } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) return res.json({ found: false });
+  const isMatch = await bcrypt.compare(password, user.password);
+  res.json({ found: true, passwordMatches: isMatch, storedHashPrefix: user.password.substring(0, 10) });
+};
