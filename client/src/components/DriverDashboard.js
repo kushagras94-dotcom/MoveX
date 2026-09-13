@@ -47,6 +47,28 @@ function DriverDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, navigate]);
 
+  useEffect(() => {
+    if (!available) return;
+
+    const updateLocation = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((position) => {
+          axios.put(`${API}/driver/location`, {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          }, {
+            headers: { Authorization: `Bearer ${token}` }
+          }).catch((err) => console.error('Location update failed:', err.message));
+        });
+      }
+    };
+
+    updateLocation();
+    const interval = setInterval(updateLocation, 30000);
+
+    return () => clearInterval(interval);
+  }, [available, token]);
+
   const setupDriver = async () => {
     try {
       // Create driver profile if not exists
@@ -177,21 +199,7 @@ function DriverDashboard() {
     }
     setResponding(false);
   };
-  const simulateLocationUpdate = () => {
-    if (socket && currentRide) {
-      const newLat = 26.9124 + (Math.random() * 0.01);
-      const newLng = 75.7873 + (Math.random() * 0.01);
-      socket.emit('driver:location', {
-        driverId: userId,
-        rideId: currentRide,
-        lat: newLat,
-        lng: newLng
-      });
-      alert(`Location updated: ${newLat.toFixed(4)}, ${newLng.toFixed(4)}`);
-    } else {
-      alert('Enter a ride ID first');
-    }
-  };
+  
 
   const logout = async () => {
     try {
@@ -300,32 +308,10 @@ function DriverDashboard() {
           >
             ✅ Complete Ride
           </button>
-          <button
-            style={{ ...styles.button, backgroundColor: '#c62828' }}
-            onClick={() => {
-              navigator.geolocation.clearWatch(watchId);
-              setWatchId(null);
-              setDriverLocation(null);
-              setActiveRide(null);
-              setRouteToPickup(null);
-            }}
-          >
-            Stop Tracking
-          </button>
+          
         </div>
       )}
-      <div style={styles.card}>
-        <h3>Simulate Live Tracking</h3>
-        <input
-          style={styles.input}
-          placeholder="Enter Ride ID"
-          value={currentRide || ''}
-          onChange={(e) => setCurrentRide(e.target.value)}
-        />
-        <button style={styles.button} onClick={simulateLocationUpdate}>
-          📍 Send Location Update
-        </button>
-      </div>
+      
     </div>
   );
 }
@@ -334,7 +320,6 @@ const styles = {
   container: { maxWidth: '600px', margin: '0 auto', padding: '2rem' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' },
   card: { background: 'white', padding: '2rem', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', marginBottom: '1rem' },
-  input: { width: '100%', padding: '12px', marginBottom: '1rem', borderRadius: '8px', border: '1px solid #ddd', fontSize: '16px', boxSizing: 'border-box' },
   button: { width: '100%', padding: '12px', backgroundColor: '#000', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', cursor: 'pointer', marginTop: '0.5rem' },
   logoutBtn: { padding: '8px 16px', backgroundColor: '#ff4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' },
   statusBadge: { color: 'white', padding: '8px 16px', borderRadius: '20px', display: 'inline-block', marginBottom: '1rem' }

@@ -47,10 +47,13 @@ const calculateFare = (distanceKm) => {
 // We export a function that accepts io, and index.js will call it to start the worker.
 function startRideMatchWorker(io) {
   const worker = new Worker('rideMatch', async (job) => {
-    const { rideId, pickup, destination, riderId } = job.data;
+    const { rideId, pickup, destination, riderId, excludeDriverId } = job.data;
 
-    const availableDrivers = await Driver.find({ isAvailable: true });
-
+    const availableDrivers = await Driver.find({
+      isAvailable: true,
+      ...(excludeDriverId && { _id: { $ne: excludeDriverId } })
+    });
+    
     if (availableDrivers.length === 0) {
       io.to(`ride:${rideId}`).emit('ride:matchFailed', {
         message: 'No drivers available'

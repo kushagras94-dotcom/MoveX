@@ -118,18 +118,23 @@ exports.rejectRide = async (req, res) => {
     if (ride.status !== 'requested') {
       return res.status(400).json({ message: 'Ride no longer available' });
     }
-    ride.status = 'cancelled';
+
+    const rejectedDriverId = ride.driverId;
+
+    // Re-queue this ride to find a different driver
+    ride.status = 'finding_driver';
+    ride.driverId = null;
     await ride.save();
 
-    const io = req.app.get('io');
-    if (io) {
-      io.to(`ride:${ride._id}`).emit('ride:statusChanged', {
-        rideId: ride._id,
-        status: 'cancelled'
-      });
-    }
+    await rideMatchQueue.add('matchDriver', {
+      rideId: ride._id.toString(),
+      pickup: ride.pickup,
+      destination: ride.destination,
+      riderId: ride.riderId.toString(),
+      excludeDriverId: rejectedDriverId?.toString()
+    });
 
-    res.status(200).json({ message: 'Ride rejected', ride });
+    res.status(200).json({ message: 'Ride rejected, finding another driver' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }

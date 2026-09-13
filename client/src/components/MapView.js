@@ -1,5 +1,5 @@
-//import React, { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Polyline } from 'react-leaflet';
+import { useEffect , useRef} from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 
 // Fix default marker icons
@@ -33,19 +33,35 @@ const driverIcon = new L.Icon({
 });
 
 // Click handler component
-function ClickHandler({ onMapClick }) {
+function ClickHandler({ onMapClick, disabled  }) {
   useMapEvents({
     click(e) {
-      onMapClick(e.latlng);
+      if (!disabled) {
+        onMapClick(e.latlng);
+      }
     }
   });
   return null;
 }
 
-function MapView({ pickup, destination, driverLocation, onMapClick, route }) {
+function RecenterMap({ userLocation }) {
+  const map = useMap();
+  const hasCentered = useRef(false);
+
+  useEffect(() => {
+    if (userLocation && !hasCentered.current) {
+      map.setView([userLocation.lat, userLocation.lng], map.getZoom());
+      hasCentered.current = true;
+    }
+  }, [userLocation, map]);
+
+  return null;
+}
+
+function MapView({ pickup, destination, driverLocation, onMapClick, route, userLocation, rideActive }) {
   return (
     <MapContainer
-      center={[26.9124, 75.7873]}
+      center={userLocation ? [userLocation.lat, userLocation.lng] : [26.9124, 75.7873]}
       zoom={13}
       style={{ height: '400px', width: '100%', borderRadius: '12px' }}
     >
@@ -54,7 +70,8 @@ function MapView({ pickup, destination, driverLocation, onMapClick, route }) {
         attribution='&copy; OpenStreetMap contributors'
       />
 
-      <ClickHandler onMapClick={onMapClick} />
+      <ClickHandler onMapClick={onMapClick} disabled={rideActive} />
+      <RecenterMap userLocation={userLocation} />
 
       {pickup && (
         <Marker position={[pickup.lat, pickup.lng]} icon={pickupIcon}>
@@ -71,6 +88,19 @@ function MapView({ pickup, destination, driverLocation, onMapClick, route }) {
       {driverLocation && (
         <Marker position={[driverLocation.lat, driverLocation.lng]} icon={driverIcon}>
           <Popup> Driver is here</Popup>
+        </Marker>
+      )}
+      {userLocation && (
+        <Marker
+          position={[userLocation.lat, userLocation.lng]}
+          icon={L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41]
+          })}
+        >
+          <Popup>📍 You are here</Popup>
         </Marker>
       )}
 

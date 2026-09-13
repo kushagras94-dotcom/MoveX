@@ -6,9 +6,9 @@ const redisClient = require('./redisClient');
 
 // Login: max 5 attempts per 15 minutes per IP
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: 5 * 60 * 1000,
   max: 5,
-  message: { message: 'Too many login attempts. Please try again in 15 minutes.' },
+  message: { message: 'Too many login attempts. Please try again in 5 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: ipKeyGenerator,

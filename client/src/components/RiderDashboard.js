@@ -23,7 +23,7 @@ function RiderDashboard() {
   const [driverName, setDriverName] = useState('');
   const [etaSeconds, setEtaSeconds] = useState(null);
   const [route, setRoute] = useState(null);
-
+  const [userLocation, setUserLocation] = useState(null);
 
   useEffect(() => {
     if (!token) navigate('/');
@@ -45,6 +45,28 @@ function RiderDashboard() {
     return () => clearInterval(timer);
   }, [etaSeconds]);
 
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setUserLocation({ lat: 26.9124, lng: 75.7873 });
+      return;
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+      },
+      (error) => {
+        console.error('Could not get location:', error.message);
+        setUserLocation({ lat: 26.9124, lng: 75.7873 });
+      },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
 
   const handleMapClick = (latlng) => {
     if (clickMode === 'pickup') {
@@ -215,7 +237,36 @@ function RiderDashboard() {
               <div style={styles.infoBox}>
                 <p>💰 Fare: <strong>{ride.estimatedFare}</strong></p>
                 <p>📏 Distance: <strong>{ride.roadDistance}</strong></p>
-                <p>⏱ Driver arrives: <strong>{etaSeconds !== null && etaSeconds > 0 ? `${Math.floor(etaSeconds / 60)}m ${etaSeconds % 60}s` : ride.estimatedDriverArrival}</strong></p>
+                {etaSeconds !== null && etaSeconds > 0 && (
+                  <p>⏱ Driver arrives: <strong>{Math.floor(etaSeconds / 60)}m {etaSeconds % 60}s</strong></p>
+                )}
+                {etaSeconds !== null && etaSeconds <= 0 && status === 'accepted' && (
+                  <p>⏱ Driver arrives: <strong>Arriving any moment</strong></p>
+                )}
+                {etaSeconds !== null && etaSeconds <= 0 && status === 'requested' && (
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <p style={{ color: '#c62828', marginBottom: '0.5rem' }}>
+                      Taking longer than expected — the driver hasn't responded yet.
+                    </p>
+                    <button
+                      style={{ ...styles.button, backgroundColor: '#c62828' }}
+                      onClick={() => {
+                        setRide(null);
+                        setStatus('');
+                        setDriverLocation(null);
+                        setRoute(null);
+                        setEtaSeconds(null);
+                        setPickup(null);
+                        setDestination(null);
+                      }}
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                )}
+                {etaSeconds === null && (
+                  <p>⏱ Driver arrives: <strong>{ride.estimatedDriverArrival}</strong></p>
+                )}
               </div>
               {status === 'accepted' && driverName && (
                 <div style={styles.driverBox}>
@@ -252,6 +303,8 @@ function RiderDashboard() {
             driverLocation={driverLocation}
             onMapClick={handleMapClick}
             route={route}
+            userLocation={userLocation}
+            rideActive={!!ride}
           />
         </div>
       </div>
